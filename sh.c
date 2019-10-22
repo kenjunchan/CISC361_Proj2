@@ -177,8 +177,26 @@ int sh( int argc, char **argv, char **envp )
       printf("Executing built-in PID\n");
       printf("Shell PID: %d\n", getPID());
     }
-      
-    
+    else if(strcmp(command, "prompt") == 0){
+      printf("Executing built-in PROMPT\n");
+      changePrompt(args[1],prompt);
+    }
+    else if(strcmp(command, "printenv") == 0)
+    {
+      printf("Executing built-in PRINTENV\n");
+      if (args[1] == NULL) 
+      { 
+        printENV(envp);
+      }
+      else if((args[1] != NULL) && (args[2] == NULL)) 
+      { 
+        printf("%s\n", getenv(args[1]));
+      }
+      else 
+      {
+        printf("printenv: too many arguments\n");
+      }
+    }
     
      /*  else  program to exec */
     {
@@ -248,3 +266,34 @@ void list ( char *dir )
 int getPID(){
   return getpid();
 }
+
+void changePrompt(char *command, char *p) 
+{
+  char buffer[128];
+  int len;
+  if (command == NULL) 
+  {
+    command = malloc(sizeof(char) * PROMPTMAX);
+    printf("input prompt prefix: ");
+    if (fgets(buffer, 128, stdin) != NULL) {
+    len = (int) strlen(buffer);
+    buffer[len - 1] = '\0';
+    strcpy(command, buffer);
+    }
+    strcpy(p, command);
+    free(command);
+  }
+  else 
+  {
+    strcpy(p, command);
+  }
+} /* newPromptPrefix() */
+
+void printENV(char **envp)
+{
+  char **currEnv = envp;
+  while (*currEnv)
+  {
+    printf("%s \n", *(currEnv++));
+  }
+} /* printenv() */
