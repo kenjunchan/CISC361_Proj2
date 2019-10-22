@@ -90,7 +90,6 @@ int sh( int argc, char **argv, char **envp )
     command = args[0];
     /* check for each built in command and implement */
     //EXIT
-    //printf("%d\n",strcmp(strtok(command,"\n"), "exit"));
     fixNewLines(args);
     if(strcmp(command, "exit") == 0)
     {
@@ -197,6 +196,18 @@ int sh( int argc, char **argv, char **envp )
         printf("printenv: too many arguments\n");
       }
     }
+    else if(strcmp(command, "kill") == 0)
+    {
+      printf("Executing built-in KILL\n");
+      if (args[1] != NULL && args[2] == NULL)
+			{
+				killProcess(atoi(args[1]), 0);
+			}
+			else if(args[1] != NULL && args[2] != NULL)
+      {
+				killProcess(atoi(args[2]), -1*atoi(args[1]));
+			}
+    }
     
      /*  else  program to exec */
     {
@@ -287,7 +298,7 @@ void changePrompt(char *command, char *p)
   {
     strcpy(p, command);
   }
-} /* newPromptPrefix() */
+} /* changePrompt() */
 
 void printENV(char **envp)
 {
@@ -297,3 +308,14 @@ void printENV(char **envp)
     printf("%s \n", *(currEnv++));
   }
 } /* printenv() */
+
+void killProcess(pid_t pid, int sig)
+{
+	if (sig == 0)
+  {
+		kill(pid,SIGTERM);
+	}
+	else {
+		kill(pid, sig);
+	}
+} /* killProcess() */

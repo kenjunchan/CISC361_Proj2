@@ -40,6 +40,6 @@ struct pathelement *get_path()
     tmp->next = NULL;
   } while ( p = strtok(NULL, ":") );
 
-  //free(path); // self added freeing of "path"
+  free(path); // self added freeing of "path"
   return pathlist;
 } /* end get_path() */
