@@ -10,7 +10,6 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include "sh.h"
-//#include "get_path.h"
 
 
 void fixNewLines(char** args){
@@ -169,7 +168,47 @@ int sh( int argc, char **argv, char **envp )
     }
     else if(strcmp(command,"list") == 0)
     {
-      printf("Executing built-in LIST\n");
+      printf("executing built-in list\n");
+      if ((args[1] == NULL) && (args[2] == NULL))
+			{
+				list(owd);
+			}
+			else
+			{
+				for (int i = 1; i < MAXARGS; i++)
+				{
+					if (args[i] != NULL)
+					{
+						printf("[%s]:\n", args[i]);
+						list(args[i]);
+					}
+				}
+			}
+    }
+    else if(strcmp(command,"cd") == 0){
+      printf("executing built-in cd\n");
+      if (args[2]!=NULL)
+      {
+				fprintf(stderr,"cd: too many arguments\n");
+			}
+			else if (args[1]) 
+      {
+				if (!strcmp(args[1],"-"))
+        {
+					strcpy(pwd,owd);
+					free(owd);
+					owd = getcwd(NULL,PATH_MAX+1);
+					chdir(pwd);
+				}
+				else 
+        {
+					free(pwd);
+					free(owd);
+					owd = getcwd (NULL, PATH_MAX+1);
+					chdir(args[1]);
+					pwd = getcwd(NULL, PATH_MAX+1);
+				}
+			}
     }
     else if(strcmp(command,"pid") == 0)
     {
@@ -183,7 +222,7 @@ int sh( int argc, char **argv, char **envp )
     else if(strcmp(command, "printenv") == 0)
     {
       printf("Executing built-in PRINTENV\n");
-      if (args[1] == NULL) 
+      if (args[1] == NULL)
       { 
         printENV(envp);
       }
@@ -193,8 +232,44 @@ int sh( int argc, char **argv, char **envp )
       }
       else 
       {
+        perror("printenv");
         printf("printenv: too many arguments\n");
       }
+    }
+    else if(strcmp(command, "setenv") == 0)
+    {
+      printf("executing built-in setenv\n");
+      //zero arguments
+      if(args[1] == NULL)
+      {
+        printENV(envp);
+      }
+      //one argument
+      else if((args[1] != NULL) && (args[2] == NULL)) 
+      { 
+        setenv(args[1], "",1);
+      }
+      //two arguments
+      else if((args[1] != NULL) && (args[2] != NULL) && (args[3] == NULL)) 
+      {
+        setenv(args[1],args[2],1);
+
+        if(!strcmp(args[1], "HOME")) 
+        {
+					homedir = getenv("HOME");
+				}
+				if(!strcmp(args[1],"PATH")) 
+        {
+					free(pathlist);
+					pathlist = get_path();
+				}
+			}
+      //more than two arguments
+      else 
+      { 
+				perror("setenv");
+				printf("setenv: too many arguments\n");
+			}
     }
     else if(strcmp(command, "kill") == 0)
     {
@@ -210,12 +285,27 @@ int sh( int argc, char **argv, char **envp )
     }
     
      /*  else  program to exec */
+    else
     {
        /* find it */
        /* do fork(), execve() and waitpid() */
-
+      char* cmd=which(args[0],pathlist);
+			int pid=fork();
+      /* do fork(), execve() and waitpid() */
+			if (pid)
+      {
+				free(cmd);
+				waitpid(pid,NULL,0);
+			}
       /* else */
         /* fprintf(stderr, "%s: Command not found.\n", args[0]); */
+      else{
+        if (execve(cmd, args, envp) < 0)
+				{
+					fprintf(stderr, "%s: command not found.\n", args[0]);
+					exit(0);
+				}
+      }
     }
     free(args);
     args = NULL;
@@ -268,12 +358,6 @@ void PWD(){
   printf("%s\n", currentWorkingDirectory);
 }
 
-void list ( char *dir )
-{
-  /* see man page for opendir() and readdir() and print out filenames for
-  the directory passed */
-} /* list() */
-
 int getPID(){
   return getpid();
 }
@@ -319,3 +403,24 @@ void killProcess(pid_t pid, int sig)
 		kill(pid, sig);
 	}
 } /* killProcess() */
+
+void list(char *dir)
+{
+  /* see man page for opendir() and readdir() and print out filenames for
+  the directory passed */
+  DIR *dr;
+  struct dirent *de;
+  dr = opendir(dir);
+  if (dr == NULL) 
+  {
+    perror(dir);
+  } 
+  else 
+  {
+    while ((de = readdir(dr)) != NULL) 
+    {
+      printf("%s\n", de->d_name);
+    }
+  }
+  closedir(dr);
+} /* list() */
